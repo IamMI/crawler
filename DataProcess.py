@@ -10,6 +10,10 @@ from PIL import Image
 import pillow_avif  
 from tqdm import tqdm
 import re
+import cv2
+import numpy as np
+import glob
+import shutil
 
 def encode_image(image_list):
         base64Images = []
@@ -22,8 +26,10 @@ def deleteImages(imageFiles):
     """Delete images"""
     for imageFile in tqdm(imageFiles):
         try:
-            path1 = os.path.join("D:\Model_Data\Datasets\\video_dressup\clothesJPG", imageFile)
+            prefix = os.path.splitext(imageFile)[0]
+            path1 = os.path.join("D:\Model_Data\Datasets\\video_dressup\clothesJPG", f'{prefix}_*.jpg')
             path2 = os.path.join("D:\Model_Data\Datasets\\video_dressup\modelsJPG", imageFile)
+            path1 = glob.glob(path1)[0]
             os.remove(path1)
             os.remove(path2)
         except:
@@ -250,10 +256,77 @@ def reorder_model_dataset(directory):
         except Exception as e:
             print(f"Failed to rename {old_file}: {e}")
 
+def WhiteFilter(imageFolder):
+    """Caculate images with white border"""
+    white_threshold = 240  
+    check_width = 5  
+    count = 0
+    fileNames = []
+    for filename in tqdm(os.listdir(imageFolder)):
+        img_path = os.path.join(imageFolder, filename)
+        img = cv2.imread(img_path)
 
+        if img is None:
+            continue
+
+        left_border = img[:, :check_width]
+        right_border = img[:, -check_width:]
+
+        is_left_white = np.all(left_border > white_threshold)
+        is_right_white = np.all(right_border > white_threshold)
+
+        if is_left_white or is_right_white:
+            count += 1
+            fileNames.append(filename)
+
+    print(f"Number: {count} / {len(os.listdir(imageFolder))}")
+    return fileNames
+    
+def Classify(imageFolder):
+    """Classify images"""
+    clothesFolder = os.path.join(imageFolder, "clothesJPG")
+    modelsFolder = os.path.join(imageFolder, "modelsJPG")
+    
+    for imageFile in tqdm(os.listdir(clothesFolder)):
+        index = imageFile[-5]
+        prefix = os.path.splitext(imageFile)[0][:-2]
+        
+        path1 = os.path.join(clothesFolder, imageFile)
+        path2 = os.path.join(modelsFolder, prefix+".jpg")
+        
+        if index == '1':
+            saveFolder = "D:\Model_Data\Datasets\\video_dressup\\upper"
+        elif index == '2':
+            saveFolder = "D:\Model_Data\Datasets\\video_dressup\\lower"
+        else:
+            saveFolder = "D:\Model_Data\Datasets\\video_dressup\\dress"
+            
+        shutil.copy(path1, os.path.join(saveFolder, "clothes"))
+        shutil.copy(path2, os.path.join(saveFolder, "images"))
+        # Rename
+        os.rename(os.path.join(saveFolder, "images", prefix+".jpg"), os.path.join(saveFolder, "images", imageFile))
+        
+def OrderRename(imageFolder):
+    """Rename files in ordered"""
+    count = 0
+    block = ["upper", "lower", "dress"]
+    for index, b in enumerate(block):
+        clothesFolder = os.path.join(imageFolder, b, "clothes")
+        imagesFolder = os.path.join(imageFolder, b, "images")
+        imagesNewFolder = os.path.join(imageFolder, b, "images_new")
+        clothesNewFolder = os.path.join(imageFolder, b, "clothes_new")
+        
+        for imageFile in os.listdir(clothesFolder):
+            os.rename(os.path.join(imagesFolder, imageFile), os.path.join(imagesNewFolder, '{:06d}_{:01d}.jpg'.format(count, index+1)))
+            os.rename(os.path.join(clothesFolder, imageFile), os.path.join(clothesNewFolder, '{:06d}_{:01d}.jpg'.format(count, index+1)))
+            count += 1
 
 
 if __name__ == '__main__':
+    OrderRename("D:\Model_Data\Datasets\\video_dressup")
+
+
+    exit()
     client = OpenAI(
         api_key="sk-13034cf952fc46e68e008a3569ae2094",
         base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",

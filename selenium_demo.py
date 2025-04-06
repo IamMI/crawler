@@ -51,7 +51,7 @@ class Test():
         links = LinkFinder(browser)
         LinkRedirect(browser, links)
     
-    def WebTest(browser):
+    def WebTest(self, browser):
         print("Begin to test our code! Firstly visit Baidu!")
         browser.get("https://www.baidu.com/")
         print(browser.title)
@@ -173,8 +173,8 @@ def ExtractPath(browser, name="lingerie"):
 
 
 if __name__=='__main__':
-    browser = ControlBrowser(port=9222)
-    
+    browser = OpenBrowser(port=9222)
+    Test().WebTest(browser)
     
     # Visit website
     # website = "https://www.net-a-porter.com/en-us/shop/clothing/lingerie"
@@ -186,7 +186,7 @@ if __name__=='__main__':
     #     browser.refresh()
     #     time.sleep(random.uniform(0.5, 2))    
 
-    ExtractPath(browser, name='lingerie')
+    # ExtractPath(browser, name='lingerie')
 
 
     time.sleep(10)
